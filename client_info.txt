@@ -1,0 +1,9 @@
+abc.txt /home/sagnik/abc.txt 127.0.0.1 10100 995eb8d8cf77a52e1bef 1
+1.txt /home/sagnik/1.txt 127.0.0.1 10100 71a1345691d19d95fd2e 1
+bfs.cpp /home/sagnik/bfs.cpp 127.0.0.1 20100 4170dc1895517759dfb8 1
+input.txt /home/sagnik/Downloads/input.txt 127.0.0.1 20100 d19f9b60c830463a3b23a022bef883bc8bb04efc 11
+4.txt /home/sagnik/4.txt 127.0.0.1 10100 d7f780a44ece61a0dac8 1
+bigint.cpp /home/sagnik/bigint.cpp 127.0.0.1 10100 99cec2a2cd402e23f8ba 1
+input.txt /home/sagnik/Pictures/input.txt 127.0.0.1 30100 d19f9b60c830463a3b23a022bef883bc8bb04efc 11
+bfs.cpp /home/sagnik/bfs.cpp 127.0.0.1 30100 4170dc1895517759dfb8 1
+bigint.cpp /home/sagnik/bigint.cpp 127.0.0.1 40400 99cec2a2cd402e23f8ba 1

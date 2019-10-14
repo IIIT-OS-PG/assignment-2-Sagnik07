@@ -15,26 +15,10 @@ struct group	{
 	string groupowner;
 	vector<string> groupmember;
 };
-//struct group group1[];
 
 unordered_map<string,string> mp;
-/*void *serverthread(void *args)	{
-	int new_socketfd=*((int *)args);
-	FILE *fp=fopen("/home/sagnik/OS_Assign_2/tracker_info.txt","a+");
-	char buffer[512]={0};
-	int file_size,n;
-	recv(new_socketfd,&file_size,sizeof(file_size),0);
-	while((n=recv(new_socketfd,buffer,512,0))>0 && file_size>0)	{
-		fwrite(buffer,sizeof(char),n,fp);
-		memset(buffer,'\0',512);
-		file_size-=n;
-	}
-	fclose(fp);
-	close(new_socketfd);
-}*/
-//void *uplthread(void *args)	{
+
 void upload(int new_socketfd)	{
-	//int new_socketfd=*((int *)args);
 	FILE *fp=fopen("/home/sagnik/OS_Assign_2/client_info.txt","a+");
 	cout<<"File created\n";
 	char buffer[100000]={0};
@@ -89,26 +73,13 @@ void *dwnthread(void *args)	{
 
 void *trackerthread(void *args)	{
 	int new_socketfd=*((int *)args);
-	/*int ret1,ret2;
-	char flag[4];
-	int flag_size;
-	int flag_read;*/
-	//int new_socketfd;
 	char flag[4]={0};
 	int flag_size;
 	int flag_read,n;
 	while(n=recv(new_socketfd,&flag,sizeof(flag),0)>0)	{
-	//while(1)	{
-		//int new_socketfd=*((int *)args);
 		cout<<"RECEIVING................"<<endl;
 		int ret1,ret2;
-		/*char flag[4]={0};
-		int flag_size;
-		int flag_read;*/
 		cout<<"Waiting for receive"<<endl;
-		/*int n=recv(new_socketfd,&flag,sizeof(flag),0);
-		if(n<=0)
-			break;*/
 		pthread_t tid1,tid2;
 		string str,str1;
 		
@@ -218,19 +189,10 @@ void *trackerthread(void *args)	{
 		if(flag2=="upl")	{
 			cout<<"Inside thread"<<endl;
 
-			//ret1=pthread_create(&tid1,NULL,uplthread,(void *)&new_socketfd);
-			//if(ret1)
-			//	cout<<"Thread creation failed\n";
-			//pthread_join(tid1,NULL);
-
-
 			FILE *fp=fopen("/home/sagnik/OS_Assign_2/client_info.txt","a+");
 			cout<<"File created\n";
 			char buffer[100000]={0};
 			int file_size=1,n;
-			//recv(new_socketfd,&file_size,sizeof(file_size),0);
-			//cout<<"filesize: "<<file_size<<endl;
-			//recv(new_socketfd,&buffer,100000,0);
 			while((n=recv(new_socketfd,buffer,sizeof(100000),0))>0)	{ // && file_size>0)	{
 				cout<<"buffer: "<<buffer<<endl;
 				fwrite(buffer,sizeof(char),n,fp);
@@ -240,15 +202,9 @@ void *trackerthread(void *args)	{
 			}
 			fclose(fp);
 			memset(flag,0,sizeof(flag));
-			//recv(new_socketfd,chunks,chunks.size(),0);
-			//close(new_socketfd);
 		}		
 		else if(strcmp(flag,"dwn")==0)	{
 			cout<<"Inside thread2"<<endl;
-			/*ret2=pthread_create(&tid2,NULL,dwnthread,(void *)&new_socketfd);
-			if(ret2)			
-				cout<<"Thread creation failed\n";
-			pthread_join(tid2,NULL);*/
 
 
 			char fileneeded[10000];
@@ -260,33 +216,28 @@ void *trackerthread(void *args)	{
 			char clientpath[1000000];
 			strcpy(clientpath,clientpath1.c_str());
 			ifstream file(clientpath);
-			string line;
+			string line="";
 			int p=1;
 			char ch[100000];
 			char ch1[1000000];
 			char ch5[100000];
 			int match=0,chunksreqd=0;
+			vector<string> tobesent(match);
 			while (getline(file, line))	{
-				//cout<<"line: "<<line<<endl;
+				cout<<"line: "<<line<<endl;
 				strcpy(ch,line.c_str());
 				strcpy(ch5,line.c_str());
 				char *token=strtok(ch," ");
 				//cout<<"token: "<<token<<endl;
 				if(strcmp(token,fileneeded)==0)	{
-					//cout<<"matched"<<endl;
-					//cout<<"with line: "<<line<<endl;
-					//break;
 					match++;
-					/*strcpy(ch1,line.c_str());
-					cout<<"ch1: "<<ch1<<endl;
-					send(new_socketfd,ch1,strlen(ch1),0);
-					memset(ch1,'\0',sizeof(ch1));*/
-					//cout<<"ch5: "<<ch<<endl;
+					tobesent.push_back(line);
+					cout<<"ch5: "<<ch<<endl;
 					char *token3=strtok(ch5," ");
 					int loopc=0;
 					while(token3!=NULL)	{
 						cout<<"token3: "<<token3<<endl;
-						if(loopc==4)	{
+						if(loopc==5)	{
 							stringstream s1(token3);
 							s1>>chunksreqd;
 							cout<<"CHunksreqd: "<<chunksreqd<<endl;
@@ -309,26 +260,19 @@ void *trackerthread(void *args)	{
 				char *token=strtok(ch," ");
 				//cout<<"token: "<<token<<endl;
 				if(strcmp(token,fileneeded)==0)	{
-					//strcpy(ch1,line.c_str());
-					//cout<<"matched"<<endl;
-					//cout<<"with line: "<<line<<endl;
-					//break;
 					strcpy(ch1,line.c_str());
-					//cout<<"ch1: "<<ch1<<endl;
-					send(new_socketfd,ch1,strlen(ch1),0);
+					cout<<"Sending lines........."<<ch1<<endl;
+					send(new_socketfd,&ch1,strlen(ch1)+1,0);
 					memset(ch1,'\0',sizeof(ch1));
 				}
+				memset(ch1,'\0',sizeof(ch1));
+				memset(ch,'\0',sizeof(ch1));
 			}
-			/*strcpy(ch1,line.c_str());
-			cout<<"ch1: "<<ch1<<endl;
-			send(new_socketfd,ch1,strlen(ch1),0);*/
-			
 			file1.close();
 
 		}
 		memset(flag,0,sizeof(flag));
 		//fflush(flag);
-		//close(new_socketfd);
 	}
 	if(n < 0) {
         	printf("recv error: %s\n", strerror(errno));
@@ -351,7 +295,6 @@ int main(int argc,char *argv[])	{
 	for(p=0;p<line.length();p++)	{
 		if(line[p]==' ')	{
 			if(c==1)	{
-				//char chh[10000];
 				strcpy(chh,word.c_str());
 				trackerip=word;
 			}
@@ -364,14 +307,13 @@ int main(int argc,char *argv[])	{
 	trackerport=stoi(word);
 	cout<<"trackerip: "<<trackerip<<endl;
 	cout<<"trackerport: "<<trackerport<<endl;
-	int socketfd,portno; //new_socketfd,portno;
+	int socketfd,portno;
 	struct sockaddr_in server_addr,client_addr;
 	socketfd=socket(AF_INET,SOCK_STREAM,0);
 	if(socketfd<0)	{
 		cout<<"Error";
 	}
 	server_addr.sin_family=AF_INET;
-     	//server_addr.sin_addr.s_addr=INADDR_ANY;
 	server_addr.sin_addr.s_addr=inet_addr(chh);     	
 	server_addr.sin_port=htons(trackerport);
 	int addrlen = sizeof(server_addr);
@@ -399,34 +341,9 @@ int main(int argc,char *argv[])	{
 		if(ret)
 			cout<<"Tracker thread creation failed"<<endl;
 		pthread_detach(tid);
-		//close(new_socketfd);
+
 	}
 
-
-		/*recv(new_socketfd,flag,100000,0);
-		string flag2(flag);
-		flag2=flag2.substr(0,3);
-		cout<<"flag: "<<flag<<endl;
-		//if(strcmp(flag,"upl")==0)	{
-		if(flag2=="upl")	{
-			cout<<"Inside thread"<<endl;
-			ret1=pthread_create(&tid1,NULL,uplthread,(void *)&new_socketfd);
-			if(ret1)
-				cout<<"Thread creation failed\n";
-			pthread_join(tid1,NULL);
-		}		
-		else if(strcmp(flag,"dwn")==0)	{
-			cout<<"Inside thread2"<<endl;
-			ret2=pthread_create(&tid2,NULL,dwnthread,(void *)&new_socketfd);
-			if(ret2)			
-				cout<<"Thread creation failed\n";
-			pthread_join(tid2,NULL);
-		}
-		//i++;
-	}*/
-	//pthread_join(tid1,NULL);
-	//pthread_join(tid2,NULL);
-	//char buffer[512]={0};
-	//close(new_socketfd);
+	
 	close(socketfd);
 }

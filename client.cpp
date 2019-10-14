@@ -16,6 +16,7 @@ using namespace std;
 long chunksize=524288;
 int PORT1;
 string IP1;
+
 struct file_upload_data	{
 	char *path;
 	int socketfd1;
@@ -27,6 +28,14 @@ struct file_download_data	{
 	char *filename;
 	char *path;
 	int socketfd1;
+};
+
+struct peerthreaddata	{
+	char *filename;
+	char *downpath;
+	int chunknumber;
+	string peeripaddress;
+	int peerport;
 };
 
 long calculatesize(string filename)
@@ -79,12 +88,7 @@ void *server(void *args)	{
 		rewind(fp);
 		int n;
 		string thisfilename(filename1);
-		/*long filesize=calculatesize(thisfilename);
-		noofchunks=filesize/chunksize;
-		for(int loop=1;loop<=noofchunks;loop++)	{
-			
-		*/	
-		//cout<<"THIS FILE'S SIZE: "<<thisfilesize<<endl;
+		
 		send(new_socketfd,&size,sizeof(size),0);
 		cout<<"Sent size: "<<size<<endl;
 		char buffer[512]={0};
@@ -98,7 +102,7 @@ void *server(void *args)	{
 		fclose(fp);
 		close(new_socketfd);
 	}
-	//close(new_socketfd);
+	
 	close(socketfd);
 	//pthread_exit(NULL);
 }
@@ -116,17 +120,7 @@ void *upload(void *args)	{
 	int size=ftell(fp);
 	rewind(fp);
 	int n;
-	//send(socketfd,&size,sizeof(size),0);
-	/*string fileinfo1="";
-	//fileinfo1=
-	int point =0;
-	for(int k=0;k<strlen(path2);k++)	{
-		if(path2[k]=='/')
-			point=k;
-	}
-	char fileinfo[1000000];
-	string filename(path2);
-	filename=filename.substr(point+1,strlen(path2)-1);*/
+
 	char fileinfo[1000000];
 	string filename(path2);
 	filename=filename+" "+IP1+" "+to_string(PORT1)+" ";
@@ -170,6 +164,71 @@ void *upload(void *args)	{
 	fclose(fp);
 	close(socketfd);
 	pthread_exit(NULL);
+}
+
+void *peerthread(void *args)	{
+	cout<<"In thread"<<endl;
+	char *path2,*downpath1;
+	struct peerthreaddata *ptdata1;	
+	ptdata1=(struct peerthreaddata *) args;
+	string path1="";
+	path2=ptdata1->filename;
+	downpath1=ptdata1->downpath;
+cout<<"hello4";
+	int chno,peerport1;
+	chno=ptdata1->chunknumber;
+cout<<"hello5";
+cout<<ptdata1->peeripaddress<<endl;
+	string peerip;
+	peerip=ptdata1->peeripaddress;
+cout<<"hello6";
+	char peerip1[100000];
+	strcpy(peerip1,peerip.c_str());
+cout<<"hello7";
+	peerport1=ptdata1->peerport;
+	cout<<"path2: "<<path2<<endl;
+	cout<<"chno: "<<chno<<endl;
+	cout<<"peerport1: "<<peerport1<<endl;
+	cout<<"peerip1: "<<peerip1<<endl;
+	cout<<"downpath1: "<<downpath1<<endl;
+	//int socketfd=ptdata1->socketfd1;
+
+	int clientsocketfd; 
+    	struct sockaddr_in peer_addr; 
+    	if((clientsocketfd=socket(AF_INET,SOCK_STREAM,0))<0) 	{
+		cout<<"\n Socket creation error \n"; 
+		//return; 
+    	}	 
+    	peer_addr.sin_family=AF_INET; 
+   	peer_addr.sin_port=htons(peerport1); 
+    	peer_addr.sin_addr.s_addr=inet_addr(peerip1);  
+    	if(connect(clientsocketfd,(struct sockaddr *)&peer_addr,sizeof(peer_addr))<0) 	{
+		printf("\nConnection Failed \n"); 
+		//return; 
+    	} 
+	cout<<"Sending filename: "<<path2<<endl;
+	send(clientsocketfd,&path2,strlen(path2)+1,0);
+	cout<<"Sending chunknumber: "<<chno<<endl;
+	send(clientsocketfd,&chno,sizeof(chno),0);
+	FILE *fp1=fopen(downpath1,"w");
+	fseek(fp1,chunksize*chno,SEEK_SET);
+	int n;
+	char buffer1[2046]={0};
+
+	//recv(clientsocketfd,&file_size,sizeof(file_size),0);
+	//cout<<"Received size: "<<file_size<<endl;
+	while((n=recv(clientsocketfd,buffer1,2048,0))>0)	{ // && file_size>0)	{
+		//cout<<"buffer got: "<<buffer1<<endl;
+		fwrite(buffer1,sizeof(char),n,fp1);
+		fflush(fp1);
+		memset(buffer1,'\0',2046);
+		//file_size-=2046;
+	}
+	fclose(fp1);
+	//close(socketfd);
+	close(clientsocketfd);
+	//pthread_exit(NULL);
+	
 }
 
 void *download(void *args)	{
@@ -245,10 +304,6 @@ void *download(void *args)	{
 
 
 int main(int argc,char *argv[])	{
-	cout<<"I am here";
-	//int socketfd; 
-	//PORT1=atoi(argv[1]);
-	//IP1(argv[2]);
 	char command[100000];
 	string commandline=argv[1];
 	strcpy(command,commandline.c_str());
@@ -268,8 +323,6 @@ int main(int argc,char *argv[])	{
 		
 	//char filepath[100000];
 	string filepath1=argv[2];
-	//strcpy(filepath,filepath1.c_str());
-	//FILE *trp=fopen(filepath,"r");*/
 	ifstream file(filepath1);
 	string line;
 	p=1;
@@ -296,36 +349,7 @@ int main(int argc,char *argv[])	{
 	cout<<"trackerip: "<<trackerip<<endl;
 	cout<<"trackerport: "<<trackerport<<endl;
 
-    	/*struct sockaddr_in serv_addr; 
-    	if((socketfd=socket(AF_INET,SOCK_STREAM,0))<0) 	{
-        	cout<<"\n Socket creation error \n"; 
-        	//return; 
-    	}	 
-
-    	serv_addr.sin_family=AF_INET; 
-    	serv_addr.sin_port=htons(trackerport); 
-    	serv_addr.sin_addr.s_addr=inet_addr(chh);
-	//serv_addr.sin_port=htons(port1); 
-    	//serv_addr.sin_addr.s_addr=inet_addr(ip1);  
-    	  
-    	if(connect(socketfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr))<0) 	{
-        	printf("\nConnection Failed \n");
-		//cout<<"Connected to server"<<endl; 
-        	//return; 
-    	}
- 	cout<<"hey";
-	cout<<"Connected to tracker.........................."<<endl;
-	pthread_t serverthread;
-	int ret3=pthread_create(&serverthread,NULL,server,NULL);
-	if(ret3)
-		cout<<"Thread creation failed\n";
-	pthread_detach(serverthread);
-	pthread_t tid1,tid2;
-	string str,str1;
-	int ret1,ret2;
-	//int i=0;
-	//cout<<"Hey\n";
-	string userid,passw,userpass;*/
+    	
 	while(1)	{
 		int socketfd;
 		struct sockaddr_in serv_addr; 
@@ -347,21 +371,14 @@ int main(int argc,char *argv[])	{
 	    	}
 	 	cout<<"hey";
 		cout<<"Connected to tracker.........................."<<endl;
-		
-
-
 		pthread_t serverthread;
 		int ret3=pthread_create(&serverthread,NULL,server,NULL);
 		if(ret3)
 			cout<<"Thread creation failed\n";
 		pthread_detach(serverthread);
-		
-
 		pthread_t tid1,tid2;
 		string str,str1;
 		int ret1,ret2;
-		//int i=0;
-		//cout<<"Hey\n";
 		string userid,passw,userpass;
 
 
@@ -373,18 +390,13 @@ int main(int argc,char *argv[])	{
 
 		cout<<"Enter command: "<<endl;
 		getline(cin,str);
-		//cout<<"Hello1"<<endl;
 		stringstream ss(str);
 		vector<string> token;
-		//cout<<"hello2"<<endl;
 		while(getline(ss,str1,' '))	{
 			token.push_back(str1);
 		}
 		cout<<"Tokens are: "<<endl;
-		/*for(int l=0;l<token.size();l++)
-			cout<<"token["<<l<<"]: "<<token[l]<<" ";
-		cout<<endl;*/
-		//char *token=strtok(str," ");
+
 		if(token[0]=="create_user")	{
 			string flag1="crt";
 			char flag[4];
@@ -500,12 +512,27 @@ int main(int argc,char *argv[])	{
 			rewind(fp);
 			int n;
 			char fileinfo[1000000];
+			
+			int point=0;
+			string path3(path2);
+			for(int loop=0;loop<path3.length();loop++)	{
+				if(path3[loop]=='/')
+					point=loop;
+			}
+			int l=1;
+			for(int loop=path3.length()-1;loop>=0;loop--)	{
+				if(path3[loop]=='/')	
+					break;
+				l++;
+			}
+			path3=path3.substr(point+1,l);
+			
 			string filename(path2);
-			filename=filename+" "+IP1+" "+to_string(PORT1)+" ";
+			filename=path3+" "+filename+" "+IP1+" "+to_string(PORT1)+" ";
 			cout<<"\nFilename: "<<filename<<endl;
 			strcpy(fileinfo,filename.c_str());
-			unsigned char buffer[512]={0};
-			int noofchunks=size/512;
+			unsigned char buffer[512*1024]={0};
+			int noofchunks=size/(512*1024);
 			cout<<"size: "<<size<<endl;
 			cout<<"noofchunks: "<<noofchunks<<endl;
 			//vector<int> chunks[noofchunks];
@@ -515,25 +542,27 @@ int main(int argc,char *argv[])	{
 				chunks+=to_string(0);
 			cout<<"chunks before: "<<chunks<<endl;
 			char chunks1[noofchunks+1];
-			strcpy(chunks1,chunks.c_str());
+			for(loop=0;loop<=noofchunks;loop++)	
+				chunks1[loop]='0';
+			//strcpy(chunks1,chunks.c_str());
 			loop=0;	
-			while((n=fread(buffer,sizeof(char),512,fp))>0 && size>0)	{
+			while((n=fread(buffer,sizeof(char),(512*1024),fp))>0 && size>0)	{
 				//unsigned char ibuf[] = "compute sha1";
 				cout<<"Buffer: "<<buffer<<endl;
 				chunks1[loop]='1';
 				loop++;
-				unsigned char obuf[20];
+				unsigned char obuf[10];
 				SHA1(buffer, sizeof(buffer), obuf);
-				char buff[10000];
+				char buff[512*1024];
 				int i;
 				string s="";
-			    	for (i = 0; i < 20; i++) {
+			    	for (i = 0; i < 10; i++) {
 					int retval=sprintf(buff,"%02x", obuf[i]);
 					string str(buff);
 					s+=str;
 			    	}
 				//cout<<s<<endl;
-				s=s.substr(0,5);
+				//s=s.substr(0,5);
 				char hash[1000000];
 				strcpy(hash,s.c_str());
 				cout<<"hash: "<<hash<<endl;
@@ -541,15 +570,16 @@ int main(int argc,char *argv[])	{
 				strcat(fileinfo,hash);
 				cout<<"fileinfo: "<<fileinfo<<endl;
 				//send(socketfd,fileinfo,strlen(fileinfo),0);
-				memset(buffer,'\0',512);
+				memset(buffer,'\0',512*1024);
 				//size-=n;
 			}
+			chunks1[loop]='\0';
 			cout<<"chunks after: "<<chunks1<<endl;
 			int size1;
 			string chunks2(chunks1);
 			memset(chunks1,'\0',sizeof(chunks1));
 			chunks2=" "+chunks2;
-			char chunks3[10000];
+			char chunks3[1000000];
 			strcpy(chunks3,chunks2.c_str());
 			strcat(fileinfo,chunks3);
 			char fileinfo2[1000000];
@@ -584,6 +614,8 @@ int main(int argc,char *argv[])	{
 			strcpy(path2,token[2].c_str());
 			cout<<"fname: "<<fname<<endl;
 			cout<<"path2: "<<path2<<endl;
+			char downpath1[10000];
+			strcpy(downpath1,token[2].c_str());
 			cout<<"socketfd: "<<socketfd<<endl;
 			fdata.filename=fname;			
 			fdata.path=path2;
@@ -598,24 +630,12 @@ int main(int argc,char *argv[])	{
 
 
 
-
-
-
-
-
-			/*cout<<"In download"<<endl;
-			char *path2,*fname;
-			struct file_download_data *fdata1;	
-			fdata1=(struct file_download_data *) args;
-			string path1="";
-			path2=fdata1->path;
-			fname=fdata1->filename;
-			int socketfd=fdata1->socketfd1;*/
+	
 			cout<<"Sending "<<fname<<endl;
 			send(socketfd,fname,strlen(fname),0);
 			string thisstring="";
 			int cunter1=1;
-			char line[100000];
+			
 			string str;
 			int match,chunksreqd;
 			recv(socketfd,&match,sizeof(match),0);
@@ -635,15 +655,39 @@ int main(int argc,char *argv[])	{
 				for(int q=0;q<noofcols;q++)
 					chunks2[p][q]=1;
 			}
+			
 			for(int p=0;p<match;p++)	{
 				for(int q=0;q<noofcols;q++)
 					cout<<chunks2[p][q]<<" ";
 				cout<<endl;
 			}
-			vector<string> arr;
-			for(int y=1;y<=match;y++)	{
-			//while(1)	{
+			
+			int total=0; int p=-1;
+			int peers[noofcols];
+			while(total<noofcols)	{
+				while(p<match)	{
+					p++;
+					if(chunks2[p][total]==1)	{
+						peers[total]=p;
+						total++;
+						break;
+					}
+				}
+				if(p>=match)
+					p=-1;
+				//p++;
+			}
+			
+			for(int i=0;i<noofcols;i++)	{
+				cout<<peers[i]<<" ";
+			}
+			
+			vector<string> arr(match);
+			char line[100000];
+			for(int y=0;y<match;y++)	{
+				
 				int y1=recv(socketfd,&line,sizeof(line),0);
+				cout<<"y1: "<<y1<<endl;
 				if(y1==0)
 					break;
 				if(cunter1==1)	{
@@ -654,17 +698,41 @@ int main(int argc,char *argv[])	{
 				
 				cout<<"line: "<<line<<endl;
 				string line1(line);
-				//thisstring+=line1+"\n";
-				//arr[cunter1-1]=line1;
-				arr.push_back(line1);
+				arr[y]=line1;
 				memset(line,'\0',100000);
 				cunter1++;
 			}
-			//cout<<"thisstring: "<<thisstring<<endl;
+
+			vector<string> peeripaddr1(match),peerfilepath1(match),peeripaddr(noofcols),peerfilepath(noofcols),peerportno1(match);
+			vector<int> peerportno(noofcols);
 			cout<<"str: "<<str<<endl;
 			for(int loop=0;loop<match;loop++)	{
 				cout<<"arr["<<loop<<"]: "<<arr[loop]<<endl;
-			}		
+				stringstream ss1(arr[loop]);
+				string str5="";
+				vector<string> token4;
+				//cout<<"hello2"<<endl;
+				while(getline(ss1,str5,' '))	{
+					cout<<"str5: "<<str5<<endl;
+					token4.push_back(str5);
+				}
+				peeripaddr1[loop]=token4[2];
+				peerfilepath1[loop]=token4[1];
+				peerportno1[loop]=token4[3];
+			}
+			for(int loop=0;loop<noofcols;loop++)	{
+				peeripaddr[loop]=peeripaddr1[peers[loop]];
+				peerfilepath[loop]=peerfilepath1[peers[loop]];
+				stringstream ss5(peerportno1[peers[loop]]);
+				ss5>>peerportno[loop];
+			}
+			for(int loop=0;loop<noofcols;loop++)	{
+				cout<<" peeripaddr["<<loop<<"]= "<<peeripaddr[loop];
+				cout<<" peerfilepath["<<loop<<"]= "<<peerfilepath[loop];
+				cout<<" peerportno["<<loop<<"]= "<<peerportno[loop];
+				cout<<endl;
+			}
+          		
 			//string str(line);
 			stringstream ss(str);
 			vector<string> token;
@@ -672,16 +740,37 @@ int main(int argc,char *argv[])	{
 			while(getline(ss,str,' '))	{
 				token.push_back(str);
 			}
-			string peerip1=token[1];
+			string peerip1=token[2];
 			char peerip[100000];
 			strcpy(peerip,peerip1.c_str());
 			char port2[100000];
-			strcpy(port2,token[2].c_str());
+			strcpy(port2,token[3].c_str());
 			int peerport=atoi(port2);
 			cout<<"peerip: "<<peerip<<endl;
 			cout<<"peerport: "<<peerport<<endl;
 			char filename[1000000];
-			strcpy(filename,token[0].c_str());
+			strcpy(filename,token[1].c_str());
+
+			
+			pthread_t tid[noofcols];
+			vector<struct peerthreaddata> ptdata(noofcols);
+			for(int loop=0;loop<noofcols;loop++)	{
+				char abcd[100000];
+				strcpy(abcd,peerfilepath[loop].c_str());
+				ptdata[loop].filename=abcd;
+				ptdata[loop].chunknumber=peers[loop];
+				ptdata[loop].peeripaddress=peeripaddr[loop];
+				ptdata[loop].peerport=peerportno[loop];
+				ptdata[loop].downpath=downpath1;
+				cout<<"BEFORE THREAD"<<endl;
+				cout<<"filename: "<<ptdata[loop].filename<<endl;
+				cout<<"peers["<<loop<<"]: "<<ptdata[loop].chunknumber<<endl;
+				cout<<"peerportno["<<loop<<"]: "<<ptdata[loop].peerport<<endl;
+				cout<<"peeripaddr["<<loop<<"]: "<<ptdata[loop].peeripaddress<<endl;
+				cout<<"downpath["<<loop<<"]: "<<ptdata[loop].downpath<<endl;
+						
+			}
+
 			int clientsocketfd; 
 		    	struct sockaddr_in peer_addr; 
 		    	if((clientsocketfd=socket(AF_INET,SOCK_STREAM,0))<0) 	{
