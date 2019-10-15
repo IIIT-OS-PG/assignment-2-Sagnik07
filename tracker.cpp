@@ -7,7 +7,6 @@
 #include <arpa/inet.h>
 #include <cstdlib>
 #include <pthread.h>
-//#define PORT 10100
 using namespace std;
 
 struct group	{
@@ -15,61 +14,9 @@ struct group	{
 	string groupowner;
 	vector<string> groupmember;
 };
+//struct group group1[];
 
 unordered_map<string,string> mp;
-
-void upload(int new_socketfd)	{
-	FILE *fp=fopen("/home/sagnik/OS_Assign_2/client_info.txt","a+");
-	cout<<"File created\n";
-	char buffer[100000]={0};
-	int file_size=1,n;
-	//recv(new_socketfd,&file_size,sizeof(file_size),0);
-	cout<<"filesize: "<<file_size<<endl;
-	while((n=recv(new_socketfd,buffer,100000,0))>0)	{ // && file_size>0)	{
-		//cout<<"buffer: "<<buffer<<endl;
-		fwrite(buffer,sizeof(char),n,fp);
-		memset(buffer,'\0',100000);
-		//file_size-=n;
-	}
-	fclose(fp);
-	close(new_socketfd);
-}
-void *dwnthread(void *args)	{
-	int new_socketfd=*((int *)args);
-	char fileneeded[10000];
-	cout<<"Waiting before receiving"<<endl;
-	//sleep(100);
-	recv(new_socketfd,fileneeded,10000,0);
-	cout<<"fileneeded: "<<fileneeded<<endl;
-	string clientpath1="/home/sagnik/OS_Assign_2/client_info.txt";
-	char clientpath[1000000];
-	strcpy(clientpath,clientpath1.c_str());
-	ifstream file(clientpath);
-	string line;
-	int p=1;
-	char ch[100000];
-	char ch1[1000000];
-        while (getline(file, line))	{
-        //    records++;
-		//ch={0};
-		cout<<"line: "<<line<<endl;
-		strcpy(ch,line.c_str());
-		char *token=strtok(ch," ");
-		cout<<"token: "<<token<<endl;
-		if(strcmp(token,fileneeded)==0)	{
-			//strcpy(ch1,line.c_str());
-			cout<<"matched"<<endl;
-			cout<<"with line: "<<line<<endl;
-			break;
-		}
-	}
-	strcpy(ch1,line.c_str());
-	cout<<"ch1: "<<ch1<<endl;
-	send(new_socketfd,ch1,strlen(ch1),0);
-	
-	file.close();
-	close(new_socketfd);
-}
 
 void *trackerthread(void *args)	{
 	int new_socketfd=*((int *)args);
@@ -77,7 +24,7 @@ void *trackerthread(void *args)	{
 	int flag_size;
 	int flag_read,n;
 	while(n=recv(new_socketfd,&flag,sizeof(flag),0)>0)	{
-		cout<<"RECEIVING................"<<endl;
+		//cout<<"RECEIVING................"<<endl;
 		int ret1,ret2;
 		cout<<"Waiting for receive"<<endl;
 		pthread_t tid1,tid2;
@@ -88,7 +35,7 @@ void *trackerthread(void *args)	{
 		cout<<"Received flag: "<<flag<<endl;
 		if(flag2=="crt")	{
 			ofstream fout;
-			fout.open("/home/sagnik/OS_Assign_2/user_info.txt",ios::app);
+			fout.open("user_info.txt",ios::app);
 			char upass2[1000];
 			recv(new_socketfd,&upass2,sizeof(upass2),0);
 			cout<<upass2<<endl;
@@ -105,9 +52,18 @@ void *trackerthread(void *args)	{
 			fout<<upass<<endl;
 			fout.close();
 		}
-		/*else if(flag2=="log")	{
-			ifstream fout;
-			fout.open("/home/sagnik/OS_Assign_2/user_info.txt",ios::app);
+		else if(flag2=="log")	{
+			fstream fin; 
+    			string word,key=""; 
+    			fin.open("user_info.txt"); 
+			int c=0;
+		    	while(fin>>word)	{ 
+				if(c==0)
+					key=word;
+				else
+					mp[key]=word;
+				c=(c+1)%2;
+			} 
 			char upass2[1000];
 			recv(new_socketfd,&upass2,sizeof(upass2),0);
 			cout<<upass2<<endl;
@@ -121,18 +77,15 @@ void *trackerthread(void *args)	{
 			userid=token[0];
 			password=token[1];
 			string login1;
-			if(mp[userid]!=mp.end() && mp[userid]==password)	
+			if(mp.find(userid)!=mp.end() && mp[userid]==password)	
 				login1="y";
 			else
 				login1="n";
 			char logininfo[2];
 			strcpy(logininfo,login1.c_str());
 			send(new_socketfd,logininfo,strlen(logininfo)+1,0);
-
-			//mp[userid]=password;
-			//fout<<upass<<endl;
-			fout.close();
-		}*/
+			fin.close();
+		}
 		/*else if(flag2=="crg")	{
 			char upass2[1000];
 			recv(new_socketfd,&upass2,sizeof(upass2),0);
@@ -187,32 +140,22 @@ void *trackerthread(void *args)	{
 					
 		}*/
 		if(flag2=="upl")	{
-			cout<<"Inside thread"<<endl;
-
-			FILE *fp=fopen("/home/sagnik/OS_Assign_2/client_info.txt","a+");
-			cout<<"File created\n";
+			FILE *fp=fopen("client_info.txt","a+");
 			char buffer[100000]={0};
 			int file_size=1,n;
-			while((n=recv(new_socketfd,buffer,sizeof(100000),0))>0)	{ // && file_size>0)	{
-				cout<<"buffer: "<<buffer<<endl;
+			while((n=recv(new_socketfd,buffer,sizeof(100000),0))>0)	{ 
 				fwrite(buffer,sizeof(char),n,fp);
 				fflush(fp);
 				memset(buffer,'\0',100000);
-				//file_size-=n;
 			}
 			fclose(fp);
 			memset(flag,0,sizeof(flag));
 		}		
 		else if(strcmp(flag,"dwn")==0)	{
-			cout<<"Inside thread2"<<endl;
-
-
 			char fileneeded[10000];
-			cout<<"Waiting before receiving"<<endl;
-			//sleep(100);
 			recv(new_socketfd,fileneeded,10000,0);
 			cout<<"fileneeded: "<<fileneeded<<endl;
-			string clientpath1="/home/sagnik/OS_Assign_2/client_info.txt";
+			string clientpath1="client_info.txt";
 			char clientpath[1000000];
 			strcpy(clientpath,clientpath1.c_str());
 			ifstream file(clientpath);
@@ -224,23 +167,20 @@ void *trackerthread(void *args)	{
 			int match=0,chunksreqd=0;
 			vector<string> tobesent(match);
 			while (getline(file, line))	{
-				cout<<"line: "<<line<<endl;
 				strcpy(ch,line.c_str());
 				strcpy(ch5,line.c_str());
 				char *token=strtok(ch," ");
-				//cout<<"token: "<<token<<endl;
 				if(strcmp(token,fileneeded)==0)	{
 					match++;
-					tobesent.push_back(line);
-					cout<<"ch5: "<<ch<<endl;
+					//cout<<"ch5: "<<ch5<<endl;
 					char *token3=strtok(ch5," ");
 					int loopc=0;
 					while(token3!=NULL)	{
-						cout<<"token3: "<<token3<<endl;
+						//cout<<"token3: "<<token3<<" loopc: "<<loopc<<endl;
 						if(loopc==5)	{
-							stringstream s1(token3);
-							s1>>chunksreqd;
-							cout<<"CHunksreqd: "<<chunksreqd<<endl;
+							string str11(token3);
+							chunksreqd=str11.length();
+							//cout<<"Chunksreqd: "<<chunksreqd<<endl;
 						}
 						token3=strtok(NULL," ");
 						loopc++;
@@ -255,29 +195,26 @@ void *trackerthread(void *args)	{
 			cout<<"Sending chunksreqd: "<<chunksreqd<<endl;
 			send(new_socketfd,&chunksreqd,sizeof(chunksreqd),0);
 			while (getline(file1, line))	{
-				//cout<<"line: "<<line<<endl;
 				strcpy(ch,line.c_str());
 				char *token=strtok(ch," ");
-				//cout<<"token: "<<token<<endl;
 				if(strcmp(token,fileneeded)==0)	{
 					strcpy(ch1,line.c_str());
-					cout<<"Sending lines........."<<ch1<<endl;
 					send(new_socketfd,&ch1,strlen(ch1)+1,0);
 					memset(ch1,'\0',sizeof(ch1));
 				}
 				memset(ch1,'\0',sizeof(ch1));
 				memset(ch,'\0',sizeof(ch1));
 			}
+
 			file1.close();
 
 		}
 		memset(flag,0,sizeof(flag));
-		//fflush(flag);
 	}
 	if(n < 0) {
         	printf("recv error: %s\n", strerror(errno));
     	}
-	cout<<"Out of client 1's loop"<<endl;
+	//cout<<"Out of client 1's loop"<<endl;
 	close(new_socketfd);
 }
 
@@ -307,7 +244,7 @@ int main(int argc,char *argv[])	{
 	trackerport=stoi(word);
 	cout<<"trackerip: "<<trackerip<<endl;
 	cout<<"trackerport: "<<trackerport<<endl;
-	int socketfd,portno;
+	int socketfd,portno; 
 	struct sockaddr_in server_addr,client_addr;
 	socketfd=socket(AF_INET,SOCK_STREAM,0);
 	if(socketfd<0)	{
@@ -327,7 +264,6 @@ int main(int argc,char *argv[])	{
 	int ret1,ret2;
 	int i=0;
 	while(1)	{
-		cout<<"Before Accepting"<<endl;
 		int new_socketfd=accept(socketfd,(struct sockaddr *)&server_addr,(socklen_t*)&addrlen);
 	     	if (new_socketfd < 0) 
 		  cout<<"ERROR on accept";
@@ -335,7 +271,6 @@ int main(int argc,char *argv[])	{
 		char flag[100000];
 		int flag_size;
 		int flag_read;
-		cout<<"Hello"<<endl;
 		pthread_t tid;
 		int ret=pthread_create(&tid,NULL,trackerthread,(void *)&new_socketfd);
 		if(ret)
